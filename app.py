@@ -38,3 +38,6 @@ def get_questions():
 @app.route("/")
 def home():
     return "Flask + Supabase minimal test"
+
+
+app = app
