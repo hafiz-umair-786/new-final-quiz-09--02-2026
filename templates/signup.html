@@ -1,36 +1,14 @@
-<form id="signup-form">
-  <input type="email" id="email" required />
-  <input type="password" id="password" required />
-  <button type="submit">Sign Up</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signup</title>
+</head>
+<body>
+  <h2>Signup</h2>
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button id="signupBtn">Sign Up</button>
 
-<script>
-  document
-    .getElementById("signup-form")
-    .addEventListener("submit", async (e) => {
-      e.preventDefault(); // prevents default GET request
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      const res = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            window.location.href = "/quiz"; // redirect to Flask route
-          } else {
-            alert(data.error);
-          }
-        });
-
-      const data = await res.json();
-      if (data.success) {
-        window.location.href = "/quiz"; // redirect after signup
-      } else {
-        alert(data.error);
-      }
-    });
-</script>
+  <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+</body>
+</html>
