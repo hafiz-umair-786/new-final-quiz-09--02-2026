@@ -1,6 +1,5 @@
 import os
-from flask import Flask, jsonify
-from supabase import create_client
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from dotenv import load_dotenv
 import requests
 
@@ -13,25 +12,61 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SUPABASE_URL or not SUPABASE_KEY or not SECRET_KEY:
     raise RuntimeError("Missing environment variables")
 
-headers = {
+HEADERS = {
     "apikey": SUPABASE_KEY,
     "Authorization": f"Bearer {SUPABASE_KEY}",
     "Content-Type": "application/json"
 }
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+app = Flask(__name__)
 app.secret_key = SECRET_KEY
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        res = requests.post(
+            f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+            headers=HEADERS,
+            json={"email": email, "password": password}
+        )
 
-@app.route("/")
-def home():
-    return "Flask + Supabase minimal test"
+        if res.status_code == 200:
+            session["user"] = email
+            return redirect("/quiz")
 
-@app.route("/questions")
-def questions():
-    res = requests.get(f"{SUPABASE_URL}/rest/v1/questions", headers=headers)
-    return jsonify(res.json())
+        return "Signup failed"
 
-# Required for Vercel
-app = app
+    return render_template("signup.html")
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        res = requests.post(
+            f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
+            headers=HEADERS,
+            json={"email": email, "password": password}
+        )
+
+        if res.status_code == 200:
+            session["user"] = email
+            return redirect("/quiz")
+
+        return "Invalid credentials"
+
+    return render_template("login.html")
+@app.route("/quiz")
+def quiz():
+    if "user" not in session:
+        return redirect("/login")
+
+    return render_template("quiz.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
