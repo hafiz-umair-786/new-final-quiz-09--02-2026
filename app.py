@@ -1,108 +1,60 @@
+from flask import Flask, request, jsonify, session, redirect
+from supabase import create_client
 import os
-import requests
-from flask import Flask, request, session, redirect, jsonify, render_template
-from dotenv import load_dotenv
 
-load_dotenv()
-
-app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = os.getenv("SECRET_KEY")
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "super-secret-key")  # keep this secret in production
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-if not SUPABASE_URL or not SUPABASE_KEY or not app.secret_key:
-    raise RuntimeError("Missing environment variables")
 
-HEADERS = {
-    "apikey": SUPABASE_KEY,
-    "Authorization": f"Bearer {SUPABASE_KEY}",
-    "Content-Type": "application/json"
-}
-
-# ---------------- HOME ----------------
-@app.route("/")
-def home():
-    if "user" in session:
-        return redirect("/quiz")
-    return redirect("/login")
-
-# ---------------- SIGNUP ----------------
-@app.route("/signup", methods=["POST"])
+# -------------------- SIGNUP --------------------
+@app.route("/api/signup", methods=["POST"])
 def signup():
-    data = request.json
+    data = request.get_json()
     email = data.get("email")
     password = data.get("password")
 
     if not email or not password:
-        return jsonify({"error": "Email and password required"}), 400
+        return jsonify({"success": False, "error": "Email and password required"}), 400
 
-    try:
-        user = supabase.auth.sign_up(email=email, password=password)
-        return jsonify({"message": "Signup successful", "user": user})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    # Check if user already exists
+    existing_user = supabase.table("users").select("*").eq("email", email).execute()
+    if existing_user.data and len(existing_user.data) > 0:
+        return jsonify({"success": False, "error": "Email already registered"}), 400
 
-# ---------------- LOGIN ----------------
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "GET":
-        return render_template("login.html")
-
-    email = request.form["email"]
-    password = request.form["password"]
-
-    res = requests.post(
-        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
-        headers=HEADERS,
-        json={"email": email, "password": password}
-    )
-
-    if res.status_code == 200:
-        session["user"] = email
-        return redirect("/quiz")
-
-    return "Invalid login", 401
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/login")
-
-@app.route("/quiz")
-def quiz():
-    if "user" not in session:
-        return redirect("/login")
-    return render_template("quiz.html")
-@app.route("/api/questions")
-def get_questions():
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    res = requests.get(
-        f"{SUPABASE_URL}/rest/v1/questions?select=question,category,difficulty",
-        headers=HEADERS
-    )
-
-    return jsonify(res.json())
-@app.route("/api/quiz/next", methods=["POST"])
-def next_question():
-    data = request.json
-    category = data.get("category")
-    asked_ids = data.get("askedIds", [])
-
-    # Fetch a random question from Supabase that has not been asked yet
-    query = supabase.table("questions").select("*").neq("id", asked_ids).eq("category", category).limit(1).execute()
-    if query.data:
-        q = query.data[0]
-        return jsonify({
-            "originalIndex": q["id"],
-            "question": q["question"],
-            "options": [q["option1"], q["option2"], q["option3"], q["option4"]],
-            "correctAnswer": q["correctAnswer"],
-            "whyCorrect": q.get("whyCorrect", "")
-        })
+    # Create user
+    result = supabase.table("users").insert({"email": email, "password": password}).execute()
+    if result.status_code == 201 or result.status_code == 200:
+        session["user"] = email  # login user after signup
+        return jsonify({"success": True})
     else:
-        return jsonify({"finished": True})
+        return jsonify({"success": False, "error": "Failed to create user"}), 500
 
 
+# -------------------- LOGIN --------------------
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"success": False, "error": "Email and password required"}), 400
+
+    user = supabase.table("users").select("*").eq("email", email).eq("password", password).execute()
+    if user.data and len(user.data) > 0:
+        session["user"] = email
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "error": "Invalid email or password"}), 401
+
+
+# -------------------- PROTECT QUIZ --------------------
+@app.route("/quiz.html")
+def quiz_page():
+    if "user" not in session:
+        return redirect("/login.html")  # redirect to login if not signed in
+    return app.send_static_file("quiz.html")
