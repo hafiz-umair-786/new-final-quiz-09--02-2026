@@ -1,27 +1,36 @@
 <form id="signup-form">
-  <input type="email" id="email" required>
-  <input type="password" id="password" required>
+  <input type="email" id="email" required />
+  <input type="password" id="password" required />
   <button type="submit">Sign Up</button>
 </form>
 
 <script>
-document.getElementById("signup-form").addEventListener("submit", async (e) => {
-  e.preventDefault(); // prevents default GET request
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  document
+    .getElementById("signup-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault(); // prevents default GET request
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
 
-  const res = await fetch("/api/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            window.location.href = "/quiz"; // redirect to Flask route
+          } else {
+            alert(data.error);
+          }
+        });
 
-  const data = await res.json();
-  if (data.success) {
-    window.location.href = "/quiz"; // redirect after signup
-  } else {
-    alert(data.error);
-  }
-});
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/quiz"; // redirect after signup
+      } else {
+        alert(data.error);
+      }
+    });
 </script>
-
