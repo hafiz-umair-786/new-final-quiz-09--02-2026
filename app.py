@@ -28,25 +28,20 @@ def home():
     return redirect("/login")
 
 # ---------------- SIGNUP ----------------
-@app.route("/signup", methods=["GET", "POST"])
+@app.route("/signup", methods=["POST"])
 def signup():
-    if request.method == "GET":
-        return render_template("signup.html")
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
 
-    email = request.form["email"]
-    password = request.form["password"]
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
 
-    res = requests.post(
-        f"{SUPABASE_URL}/auth/v1/token?grant_type=password",
-        headers=HEADERS,
-        json={"email": email, "password": password}
-    )
-
-    if res.status_code == 200:
-        session["user"] = email
-        return redirect("/quiz")
-
-    return "Signup failed", 401
+    try:
+        user = supabase.auth.sign_up(email=email, password=password)
+        return jsonify({"message": "Signup successful", "user": user})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 # ---------------- LOGIN ----------------
 @app.route("/login", methods=["GET", "POST"])
@@ -109,4 +104,5 @@ def next_question():
         })
     else:
         return jsonify({"finished": True})
+
 
