@@ -9,6 +9,18 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# Landing page / signup page
+@app.route("/signup")
+def signup_page():
+    return render_template("signup.html")
+
+# Quiz page - only accessible after login
+@app.route("/quiz")
+def quiz_page():
+    if "user_id" not in session:
+        return redirect(url_for("signup_page"))
+    return render_template("quiz.html")
+
 
 # -------------------- SIGNUP --------------------
 @app.route("/api/signup", methods=["POST"])
@@ -58,3 +70,4 @@ def quiz_page():
     if "user" not in session:
         return redirect("/login.html")  # redirect to login if not signed in
     return app.send_static_file("quiz.html")
+
