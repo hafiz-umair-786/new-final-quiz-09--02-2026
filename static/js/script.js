@@ -37,9 +37,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const QUIZ_TIME_LIMIT = 15;
   const MAX_CHEATS = 3;
-  const correctSound = new Audio("audio/correct-answer.mp3");
-  const alertSound = new Audio("audio/alert.mp3");
-  const timerSound = new Audio("audio/timer.mp3");
+  const correctSound = new Audio("static/audio/correct-answer.mp3");
+  const alertSound = new Audio("static/audio/alert.mp3");
+  const timerSound = new Audio("static/audio/timer.mp3");
   const wrongSound = new Audio(
     "https://cdn.pixabay.com/download/audio/2022/02/11/audio_7f0bf4cdc0.mp3?filename=eritnhut1992-buzzer-or-wrong-answer-20582.mp3",
   );
