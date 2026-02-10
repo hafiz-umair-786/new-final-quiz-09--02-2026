@@ -18,9 +18,10 @@ document.getElementById("signup-form").addEventListener("submit", async (e) => {
 
   const data = await res.json();
   if (data.success) {
-    window.location.href = "/quiz.html"; // redirect after signup
+    window.location.href = "/quiz"; // redirect after signup
   } else {
     alert(data.error);
   }
 });
 </script>
+
