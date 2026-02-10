@@ -90,3 +90,23 @@ def get_questions():
     )
 
     return jsonify(res.json())
+@app.route("/api/quiz/next", methods=["POST"])
+def next_question():
+    data = request.json
+    category = data.get("category")
+    asked_ids = data.get("askedIds", [])
+
+    # Fetch a random question from Supabase that has not been asked yet
+    query = supabase.table("questions").select("*").neq("id", asked_ids).eq("category", category).limit(1).execute()
+    if query.data:
+        q = query.data[0]
+        return jsonify({
+            "originalIndex": q["id"],
+            "question": q["question"],
+            "options": [q["option1"], q["option2"], q["option3"], q["option4"]],
+            "correctAnswer": q["correctAnswer"],
+            "whyCorrect": q.get("whyCorrect", "")
+        })
+    else:
+        return jsonify({"finished": True})
+
